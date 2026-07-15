@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>好物商城</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f6f5f3;--bg2:#ffffff;--bg3:#f0efec;
+  --card:#ffffff;--text:#2c2c2c;--text2:#6b6b6b;--text3:#a0a0a0;
+  --primary:#d35448;--primary-bg:rgba(211,84,72,.08);--primary-border:rgba(211,84,72,.25);
+  --accent:#1a7a6d;--accent-bg:rgba(26,122,109,.08);
+  --gold:#c8952e;--gold-bg:rgba(200,149,46,.1);
+  --green:#3a8f6a;--green-bg:rgba(58,143,106,.1);
+  --red:#d35448;--red-bg:rgba(211,84,72,.1);
+  --border:#e5e3df;--border2:rgba(26,122,109,.3);
+  --shadow:0 1px 8px rgba(0,0,0,.05);--shadow-lg:0 8px 32px rgba(0,0,0,.1);
+  --radius:14px;--radius-sm:8px;
+  --font:'Inter',-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;
+  --mono:'SF Mono','Fira Code','Menlo',monospace;
+  --s-bg:#f6f5f3;--s-card:#fff;--s-border:#e5e3df;--s-text:#2c2c2c;--s-text2:#6b6b6b;--s-accent:#1a7a6d;
+}
+body{font-family:var(--font);background:var(--s-bg);color:var(--s-text);line-height:1.6;min-height:100vh}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ── Mode Toggle ── */
+.mode-pill{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;align-items:center;gap:8px;padding:6px;background:var(--card);border:1px solid var(--border);border-radius:40px;box-shadow:var(--shadow-lg);cursor:pointer;user-select:none}
+.mode-opt{padding:8px 18px;border-radius:34px;font-size:12px;font-weight:600;transition:all .25s;color:var(--text2)}
+.mode-opt.on{color:#fff}
+.mode-opt.operate.on{background:var(--accent)}
+.mode-opt.inspect.on{background:var(--gold)}
+.mode-pill .sep{width:1px;height:20px;background:var(--border)}
+
+/* ── Hotspot (only in inspect mode) ── */
+.hs{position:relative;border-radius:4px;transition:all .2s}
+body.inspect .hs{cursor:pointer}
+body.inspect .hs::before{content:'';position:absolute;inset:-3px;border-radius:8px;border:2px dashed transparent;transition:all .25s;pointer-events:none;z-index:2}
+body.inspect .hs:hover::before{border-color:var(--gold);background:var(--gold-bg)}
+body.inspect .hs:hover{z-index:5}
+.hs .hs-label{position:absolute;top:-28px;left:50%;transform:translateX(-50%);padding:3px 12px;border-radius:6px;font-size:11px;font-weight:600;background:var(--gold);color:#fff;white-space:nowrap;z-index:10;opacity:0;pointer-events:none;transition:all .2s;box-shadow:0 2px 8px rgba(200,149,46,.3)}
+.hs .hs-label::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--gold)}
+body.inspect .hs:hover .hs-label{opacity:1;top:-32px}
+
+/* ── Tooltip ── */
+.tooltip{position:fixed;z-index:500;background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:18px 20px;max-width:320px;min-width:260px;box-shadow:var(--shadow-lg);pointer-events:none;opacity:0;transform:translateY(6px);transition:all .18s}
+.tooltip.show{opacity:1;transform:translateY(0)}
+.tt-zh{font-size:17px;font-weight:700}.tt-en{font-size:12px;color:var(--gold);font-family:var(--mono);margin:2px 0 8px}.tt-desc{font-size:13px;color:var(--text2);line-height:1.7}.tt-hint{font-size:11px;color:var(--text3);margin-top:10px;border-top:1px solid var(--border);padding-top:8px}
+
+/* ── Detail Panel ── */
+.overlay{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.3);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:all .25s}
+.overlay.show{opacity:1;visibility:visible}
+.panel{background:var(--card);border-radius:20px;width:620px;max-width:92vw;max-height:85vh;overflow-y:auto;box-shadow:var(--shadow-lg);transform:scale(.95);transition:transform .25s}
+.overlay.show .panel{transform:scale(1)}
+.panel-head{padding:24px 28px 18px;display:flex;align-items:flex-start;justify-content:space-between;border-bottom:1px solid var(--border)}
+.ph-zh{font-size:22px;font-weight:800}.ph-en{font-size:13px;color:var(--gold);font-family:var(--mono);margin-top:3px}.ph-cat{display:inline-block;margin-top:6px;padding:3px 10px;border-radius:6px;background:var(--gold-bg);color:var(--gold);font-size:11px;font-weight:600}
+.panel-close{width:34px;height:34px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s;flex-shrink:0}
+.panel-close:hover{background:var(--red);color:#fff;border-color:var(--red)}
+.panel-section{margin:20px 28px;padding:16px 18px;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border)}
+.panel-section h3{font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.panel-section p{font-size:13px;color:var(--text2);line-height:1.8}
+.usage-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.usage-do{background:var(--green-bg);border:1px solid rgba(58,143,106,.2);border-radius:8px;padding:12px;color:var(--green);font-size:12px;line-height:1.6}
+.usage-dont{background:var(--red-bg);border:1px solid rgba(211,84,72,.2);border-radius:8px;padding:12px;color:var(--red);font-size:12px;line-height:1.6}
+.usage-do strong,.usage-dont strong{display:block;margin-bottom:4px;font-size:11px}
+.anatomy-list{display:flex;flex-wrap:wrap;gap:8px}
+.anatomy-item{padding:5px 14px;border-radius:8px;font-size:12px;font-weight:500;background:var(--gold-bg);color:var(--gold);border:1px solid rgba(200,149,46,.2)}
+.copy-row{margin:20px 28px 24px;display:flex;gap:10px}
+.copy-btn{flex:1;padding:11px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg);color:var(--text2);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s}
+.copy-btn:hover{border-color:var(--gold);color:var(--gold)}
+.copy-btn.copied{background:var(--green-bg);border-color:var(--green);color:var(--green)}
+
+/* ══════ E-COMMERCE APP ══════ */
+.app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--s-bg);position:relative;box-shadow:var(--shadow-lg)}
+
+/* Top Nav */
+.ec-nav{display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--s-card);border-bottom:1px solid var(--s-border);position:sticky;top:0;z-index:50}
+.ec-back{width:32px;height:32px;border-radius:8px;border:none;background:transparent;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;color:var(--s-text);transition:all .15s}
+.ec-back:hover{background:var(--bg)}
+.ec-nav-title{font-size:16px;font-weight:700;flex:1}
+.ec-nav-icons{display:flex;gap:6px}
+.ec-nav-icon{width:34px;height:34px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:15px;position:relative;cursor:pointer;transition:background .15s}
+.ec-nav-icon:hover{background:var(--border)}
+.ec-nav-icon .dot{position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;background:var(--red);border:2px solid var(--s-card)}
+
+/* Breadcrumb */
+.ec-bc{display:flex;align-items:center;gap:6px;padding:10px 16px;font-size:12px;color:var(--text2)}
+.ec-bc a{color:var(--accent);text-decoration:none;cursor:pointer}
+.ec-bc a:hover{text-decoration:underline}
+.ec-bc .sep{color:var(--border)}
+.ec-bc .cur{color:var(--s-text);font-weight:500}
+
+/* Body */
+.ec-body{padding:16px;display:flex;flex-direction:column;gap:14px;padding-bottom:80px}
+
+/* Search */
+.ec-search{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--s-card);border-radius:12px;border:1px solid var(--s-border);font-size:13px;color:var(--text3)}
+
+/* Banner */
+.ec-banner{border-radius:14px;padding:24px 20px;min-height:100px;color:#fff;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden}
+.ec-banner.warm{background:linear-gradient(135deg,#e8734a,#d4553e,#c44535)}
+.ec-banner h3{font-size:18px;font-weight:800;margin-bottom:3px}
+.ec-banner p{font-size:12px;opacity:.85}
+.ec-dots{display:flex;gap:5px;margin-top:12px}
+.ec-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.35);cursor:pointer;transition:all .2s}
+.ec-dot.on{background:#fff;width:20px;border-radius:4px}
+.ec-arrow{position:absolute;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;cursor:pointer;backdrop-filter:blur(4px);border:none;transition:background .15s}
+.ec-arrow:hover{background:rgba(255,255,255,.35)}
+.ec-arrow.l{left:10px}.ec-arrow.r{right:10px}
+
+/* Tabs */
+.ec-tabs{display:flex;gap:0;background:var(--s-card);border-radius:12px;padding:4px;border:1px solid var(--s-border)}
+.ec-tab{padding:8px 0;border-radius:9px;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;transition:all .2s;flex:1;text-align:center}
+.ec-tab.on{background:var(--accent);color:#fff;font-weight:600;box-shadow:0 2px 8px rgba(26,122,109,.2)}
+.ec-tab:hover:not(.on){background:var(--bg)}
+
+/* Category chips */
+.ec-cats{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.ec-cats::-webkit-scrollbar{display:none}
+.ec-cat{padding:7px 16px;border-radius:20px;font-size:12px;font-weight:600;background:var(--s-card);color:var(--text2);border:1px solid var(--s-border);white-space:nowrap;cursor:pointer;transition:all .15s}
+.ec-cat.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.ec-cat:hover:not(.on){background:var(--bg)}
+.ec-cat.dashed{border-style:dashed;color:var(--text3)}
+
+/* Sort */
+.ec-sort{display:flex;justify-content:space-between;align-items:center}
+.ec-sort-sel{padding:6px 28px 6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--s-card);font-size:12px;color:var(--s-text);appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='8' height='5' viewBox='0 0 8 5' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L4 4L7 1' stroke='%236b6b6b' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;cursor:pointer}
+.ec-count{font-size:12px;color:var(--text3)}
+
+/* Product Grid */
+.ec-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.ec-product{background:var(--s-card);border-radius:14px;overflow:hidden;border:1px solid var(--s-border);cursor:pointer;transition:all .2s}
+.ec-product:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.08)}
+.ec-product-img{height:140px;display:flex;align-items:center;justify-content:center;font-size:48px;position:relative}
+.ec-product-img .ec-tag{position:absolute;top:10px;left:10px;padding:3px 10px;border-radius:6px;font-size:10px;font-weight:700;color:#fff}
+.ec-product-img .ec-badge{position:absolute;top:10px;right:10px;min-width:20px;height:20px;border-radius:10px;background:var(--red);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 5px}
+.ec-pinfo{padding:12px}
+.ec-pname{font-size:13px;font-weight:600;color:var(--s-text);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ec-prating{display:flex;align-items:center;gap:4px;margin-bottom:6px}
+.stars{color:#e8a94a;font-size:12px;letter-spacing:1px}.stars-dim{color:var(--border)}
+.rating-num{font-size:11px;color:var(--text3)}
+.ec-pprice{font-size:18px;font-weight:800;color:var(--red)}
+.ec-pprice small{font-size:11px;font-weight:400;color:var(--text3);text-decoration:line-through;margin-left:5px}
+.ec-psales{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* Bottom Nav */
+.ec-bnav{display:flex;justify-content:space-around;padding:10px 0 24px;background:var(--s-card);border-top:1px solid var(--s-border);position:sticky;bottom:0;z-index:50}
+.ec-bnav-item{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:var(--text2);cursor:pointer;position:relative;transition:color .15s}
+.ec-bnav-ico{width:24px;height:24px;border-radius:7px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s}
+.ec-bnav-item.on{color:var(--accent)}
+.ec-bnav-item.on .ec-bnav-ico{background:var(--accent);color:#fff}
+.ec-bnav-badge{position:absolute;top:-5px;right:2px;min-width:17px;height:17px;border-radius:9px;background:var(--red);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px}
+
+/* ── Detail View ── */
+.ec-dimg{width:100%;height:240px;display:flex;align-items:center;justify-content:center;font-size:72px;position:relative;overflow:hidden}
+.ec-dimg .ec-arrow{width:32px;height:32px;font-size:15px}
+.ec-dimg .ec-dots{position:absolute;bottom:14px;left:50%;transform:translateX(-50%)}
+.ec-dbody{padding:16px;display:flex;flex-direction:column;gap:14px;padding-bottom:90px}
+.ec-dprice{font-size:28px;font-weight:800;color:var(--red)}
+.ec-dprice small{font-size:14px;font-weight:400;color:var(--text3);text-decoration:line-through;margin-left:8px}
+.ec-dprice .disc{font-size:11px;font-weight:700;color:#fff;background:var(--red);padding:2px 8px;border-radius:5px;margin-left:8px}
+.ec-dname{font-size:17px;font-weight:700;color:var(--s-text);line-height:1.4}
+.ec-dtags{display:flex;gap:6px;flex-wrap:wrap}
+.ec-dtag{padding:4px 12px;border-radius:7px;font-size:11px;font-weight:600}
+.ec-drating{display:flex;align-items:center;gap:8px}
+.ec-dstars{font-size:18px;color:#e8a94a;letter-spacing:2px}
+.ec-drtxt{font-size:12px;color:var(--text2)}
+.ec-div{height:1px;background:var(--s-border);margin:2px 0}
+
+/* Stepper */
+.ec-stepper{display:flex;align-items:center;border:1.5px solid var(--s-border);border-radius:10px;overflow:hidden;width:fit-content}
+.ec-stepbtn{width:36px;height:36px;border:none;background:var(--bg);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--s-text);transition:background .15s}
+.ec-stepbtn:hover{background:var(--border)}
+.ec-stepval{width:48px;height:36px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;border-left:1px solid var(--s-border);border-right:1px solid var(--s-border)}
+
+/* Shipping */
+.ec-ship{padding:14px;background:var(--bg);border-radius:12px;border:1px solid var(--s-border)}
+.ec-ship-text{font-size:12px;color:var(--text2);margin-bottom:8px}
+.ec-ship-text strong{color:var(--red)}
+.ec-ship-bar{height:6px;border-radius:3px;background:var(--border);overflow:hidden}
+.ec-ship-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--green));transition:width .3s}
+
+/* Action bar */
+.ec-actions{display:flex;gap:10px;padding:14px 16px;background:var(--s-card);border-top:1px solid var(--s-border);position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;z-index:50}
+.ec-actions-inline{display:flex;gap:10px;padding:0;margin-top:8px}
+.ec-abtn{flex:1;padding:14px;border-radius:14px;border:none;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;text-align:center}
+.ec-abtn.primary{background:var(--red);color:#fff}
+.ec-abtn.primary:hover{filter:brightness(1.1)}
+.ec-abtn.secondary{background:var(--bg);color:var(--accent);border:1.5px solid var(--accent)}
+
+/* Reviews */
+.ec-rvhead{display:flex;justify-content:space-between;align-items:center}
+.ec-rvtitle{font-size:15px;font-weight:700}
+.ec-rvcount{font-size:12px;color:var(--text3)}
+.ec-review{display:flex;gap:10px;padding:14px 0;border-bottom:1px solid var(--s-border)}
+.ec-review:last-child{border-bottom:none}
+.ec-rv-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;font-weight:700;flex-shrink:0}
+.ec-rv-body{flex:1}
+.ec-rv-name{font-size:12px;font-weight:600}
+.ec-rv-stars{font-size:11px;color:#e8a94a;margin:2px 0 6px}
+.ec-rv-text{font-size:13px;color:var(--text2);line-height:1.6}
+.ec-rv-time{font-size:10px;color:var(--text3);margin-top:4px}
+
+/* Cart */
+.ec-cartitem{display:flex;gap:12px;padding:14px;background:var(--s-card);border-radius:14px;border:1px solid var(--s-border)}
+.ec-cartimg{width:80px;height:80px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0}
+.ec-cartinfo{flex:1;display:flex;flex-direction:column;justify-content:space-between}
+.ec-cartname{font-size:14px;font-weight:600}
+.ec-cartspec{font-size:11px;color:var(--text3)}
+.ec-cartbot{display:flex;justify-content:space-between;align-items:center}
+.ec-cartprice{font-size:16px;font-weight:800;color:var(--red)}
+.ec-cartdel{font-size:12px;color:var(--text3);cursor:pointer;padding:4px 10px;border-radius:6px;transition:all .15s}
+.ec-cartdel:hover{color:var(--red);background:var(--red-bg)}
+
+.ec-summary{padding:18px;background:var(--s-card);border-radius:14px;border:1px solid var(--s-border)}
+.ec-sumrow{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;color:var(--text2)}
+.ec-sumrow.total{font-size:17px;font-weight:800;color:var(--s-text);border-top:1px solid var(--s-border);padding-top:12px;margin-top:6px}
+.ec-sumrow.total .val{color:var(--red)}
+.ec-sumrow .free{color:var(--green);font-weight:600}
+
+/* Empty */
+.ec-empty{text-align:center;padding:60px 20px}
+.ec-empty-ico{font-size:52px;margin-bottom:14px;opacity:.5}
+.ec-empty-txt{font-size:14px;color:var(--text2);margin-bottom:18px}
+.ec-empty-btn{display:inline-block;padding:12px 32px;border-radius:12px;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:filter .15s}
+.ec-empty-btn:hover{filter:brightness(1.1)}
+
+/* Modal */
+.ec-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:200}
+.ec-modal{background:var(--s-card);border-radius:20px;width:300px;padding:28px;text-align:center;box-shadow:var(--shadow-lg)}
+.ec-modal-ico{font-size:40px;margin-bottom:14px}
+.ec-modal-title{font-size:17px;font-weight:700;margin-bottom:6px}
+.ec-modal-desc{font-size:13px;color:var(--text2);margin-bottom:20px}
+.ec-modal-btns{display:flex;gap:10px}
+.ec-modal-btn{flex:1;padding:12px;border-radius:12px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.ec-modal-btn.primary{background:var(--accent);color:#fff}
+.ec-modal-btn.ghost{background:var(--bg);color:var(--text2);border:1px solid var(--border)}
+
+/* Filter Drawer */
+.ec-drawer-bg{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:200}
+.ec-drawer{position:fixed;left:50%;transform:translateX(-50%);top:0;bottom:0;width:100%;max-width:320px;background:var(--s-card);z-index:201;padding:24px 20px;box-shadow:var(--shadow-lg);overflow-y:auto}
+.ec-drawer h4{font-size:16px;font-weight:700;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center}
+.ec-drawer h4 span{font-size:13px;color:var(--text3);cursor:pointer;font-weight:400}
+.ec-dsec{margin-bottom:20px}
+.ec-dlabel{font-size:13px;font-weight:600;color:var(--s-text);margin-bottom:10px}
+.ec-dslider{width:100%;height:6px;border-radius:3px;background:var(--border);position:relative;margin:14px 0}
+.ec-dslider-fill{position:absolute;left:10%;right:30%;height:100%;border-radius:3px;background:var(--accent)}
+.ec-dslider-handle{position:absolute;top:-5px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.ec-dprice-row{display:flex;justify-content:space-between;font-size:12px;color:var(--text2)}
+.ec-dcheck{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);margin-bottom:10px}
+.ec-dcheck-box{width:18px;height:18px;border-radius:5px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px}
+.ec-dcheck-box.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.ec-dbtns{display:flex;gap:10px;margin-top:24px}
+.ec-dbtn{flex:1;padding:12px;border-radius:12px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.ec-dbtn.ghost{background:var(--bg);color:var(--text2);border:1px solid var(--border)}
+.ec-dbtn.primary{background:var(--accent);color:#fff}
+</style>
+</head>
+<body class="operate">
+
+<!-- App -->
+<div class="app" id="app"></div>
+
+<!-- Mode Toggle -->
+<div class="mode-pill" id="modePill">
+  <div class="mode-opt operate on" onclick="setMode('operate')">🖱 操作</div>
+  <div class="sep"></div>
+  <div class="mode-opt inspect" onclick="setMode('inspect')">🔍 查询</div>
+</div>
+
+<!-- Tooltip -->
+<div class="tooltip" id="tooltip"><div class="tt-zh" id="ttZh"></div><div class="tt-en" id="ttEn"></div><div class="tt-desc" id="ttDesc"></div><div class="tt-hint">💡 点击查看组件详情</div></div>
+
+<!-- Detail Overlay -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closePanel()"><div class="panel" id="panel"></div></div>
+
+<script>
+// ── Component Data ──
+const D={
+  'banner':{zh:'横幅广告',en:'Banner',cat:'布局',desc:'页面顶部的大尺寸视觉展示区域，用于广告推广、活动通知或品牌宣传。通常是用户最先注意到的元素。',doU:'用于首页核心视觉位，承载品牌宣传或限时活动。',dontU:'小屏上避免过大 Banner 遮挡核心内容。',anatomy:['标题文案','副标题','背景图','CTA 按钮','指示器']},
+  'carousel':{zh:'轮播图',en:'Carousel',cat:'布局',desc:'可自动或手动切换的水平内容展示组件。在有限空间内轮播多张图片或卡片。',doU:'展示 3-5 张运营内容，配合指示器。',dontU:'不要超过 7 张，用户很少看后面的。',anatomy:['内容区','指示器','左右箭头']},
+  'search':{zh:'搜索栏',en:'Search Bar',cat:'输入',desc:'提供文本输入以查找或筛选内容的输入组件。含搜索图标、输入框和清除按钮。',doU:'放在页面顶部，提供实时搜索建议。',dontU:'小屏上应折叠为搜索图标。',anatomy:['搜索图标','输入框','占位符','清除按钮']},
+  'tag':{zh:'标签',en:'Tag / Chip',cat:'数据展示',desc:'小型标记元素，用于分类、标注或筛选。可以是只读标签或可交互的筛选条件。',doU:'用于内容分类、筛选条件或状态标记。',dontU:'单视图标签不超过 10 个。',anatomy:['标签文字','背景色','删除按钮']},
+  'card':{zh:'卡片',en:'Card',cat:'数据展示',desc:'将相关信息聚合在圆角容器中。通过视觉分区隔离不同内容，是现代 UI 最常见的承载单元。',doU:'每张卡片承载一个完整信息单元。',dontU:'不要堆砌过多信息，详情跳转详情页。',anatomy:['封面图','标题','描述','操作区']},
+  'badge':{zh:'徽标数',en:'Badge',cat:'数据展示',desc:'附着在图标上的小型数字或圆点标记，提示未读数量或状态变化。',doU:'用于导航图标，超过 99 显示"99+"。',dontU:'过多红点会造成视觉焦虑。',anatomy:['数字/圆点','背景色','附着目标']},
+  'bottom-nav':{zh:'底部导航栏',en:'Bottom Navigation',cat:'导航',desc:'移动应用底部固定导航栏，承载 3-5 个核心入口。拇指最易触达的位置。',doU:'移动应用核心入口，3-5 个主要模块。',dontU:'不要超过 5 个入口。',anatomy:['导航图标','文字标签','选中态','角标']},
+  'tab':{zh:'选项卡',en:'Tab Bar',cat:'导航',desc:'在同一页面内切换不同内容面板。点击标签查看对应内容，无需跳转。',doU:'2-7 个平级分类切换。',dontU:'不要用 Tab 承载页面导航。',anatomy:['标签项','选中指示器','内容区域']},
+  'avatar':{zh:'头像',en:'Avatar',cat:'数据展示',desc:'展示用户身份的圆形图片组件。无图片时显示首字母或默认图标。',doU:'评论区、用户列表、消息列表等场景。',dontU:'不要用纯装饰图片代替。',anatomy:['图片/首字母','形状','在线状态']},
+  'notification':{zh:'通知提醒',en:'Notification',cat:'反馈',desc:'从屏幕边缘滑入的信息提示，包含标题、描述和操作按钮。',doU:'需要用户知晓但非紧急的信息。',dontU:'不要同时弹出多条。',anatomy:['图标','标题','描述','关闭']},
+  'rating':{zh:'评分',en:'Rating / Stars',cat:'数据展示',desc:'以星星展示评分，通常 1-5 星。可用于展示结果（只读）或让用户打分。',doU:'商品评价、店铺评分、内容推荐。',dontU:'非评价性质的状态用 Badge。',anatomy:['星星图标','半星','评分数值','评价人数']},
+  'qty-stepper':{zh:'数量步进器',en:'Quantity Stepper',cat:'输入',desc:'通过 + / - 按钮精确调整数值的控件。常用于商品数量选择。',doU:'购物车数量调整、选择份数。',dontU:'数值范围大时用输入框。',anatomy:['减少按钮','数值显示','增加按钮']},
+  'progress':{zh:'进度条',en:'Progress Bar',cat:'反馈',desc:'以可视化方式展示任务完成进度。可以是确定型或不确定型。',doU:'有明确完成度的任务。',dontU:'无法估算时用 Spinner。',anatomy:['轨道','已填充','百分比']},
+  'button':{zh:'按钮',en:'Button',cat:'输入',desc:'触发操作的核心交互元素。有多种变体（主要、次要、文本等）。',doU:'每个视图一个主要按钮。',dontU:'不要用颜色区分功能。',anatomy:['按钮文案','图标','加载态','禁用态']},
+  'modal':{zh:'模态对话框',en:'Modal / Dialog',cat:'反馈',desc:'覆盖在页面上的对话框，强制用户处理后才能继续。用于确认或关键输入。',doU:'需要明确确认的操作（删除、付款）。',dontU:'不要滥用弹窗打断用户。',anatomy:['遮罩层','标题','内容区','按钮组','关闭']},
+  'drawer':{zh:'抽屉面板',en:'Drawer / Sheet',cat:'反馈',desc:'从屏幕边缘滑入的面板。比 Modal 更具上下文连贯性。',doU:'展示补充信息或筛选面板。',dontU:'不要嵌套过多层级。',anatomy:['遮罩层','面板容器','拖拽手柄']},
+  'breadcrumb':{zh:'面包屑导航',en:'Breadcrumb',cat:'导航',desc:'展示当前页面在信息架构中位置的辅助导航。帮助用户理解"我在哪"。',doU:'层级较深（3级以上）的网站。',dontU:'扁平单页应用不需要。',anatomy:['上级链接','分隔符','当前页面']},
+  'sort-select':{zh:'排序选择器',en:'Sort Select',cat:'输入',desc:'让用户选择列表排列方式的下拉控件。常见维度有价格、销量、评价等。',doU:'放在列表页顶部。',dontU:'保留最常用的 3-5 个选项。',anatomy:['触发器','下拉箭头','排序选项']},
+  'divider':{zh:'分割线',en:'Divider',cat:'布局',desc:'分隔不同内容区域的线条。帮助用户理解内容的分组关系。',doU:'分隔不同功能区块。',dontU:'留白本身也有分隔效果，不要过度使用。',anatomy:['线条','间距','方向']},
+  'empty-state':{zh:'空状态',en:'Empty State',cat:'反馈',desc:'列表或容器中没有数据时的占位界面。好的空状态还引导用户下一步操作。',doU:'购物车为空、搜索无结果等都要设计。',dontU:'不要只显示"暂无数据"。',anatomy:['插图','提示文案','引导按钮']},
+  'slider':{zh:'滑块',en:'Slider',cat:'输入',desc:'通过拖动选择数值或范围的输入控件。适合直观调节场景。',doU:'需要感知数值范围时使用。',dontU:'精确数值场景不适合。',anatomy:['轨道','已填充','手柄','数值']},
+  'checkbox':{zh:'复选框',en:'Checkbox',cat:'输入',desc:'允许选择一个或多个的控件。复选框之间不互斥。',doU:'多选场景或协议确认。',dontU:'互斥单选场景用 Radio。',anatomy:['方形框','勾选标记','选项标签']},
+};
+
+// ── Products ──
+const P=[
+  {id:1,name:'法式碎花连衣裙',emoji:'👗',price:199,orig:399,cat:'women',rating:4.8,sales:2341,tag:'新品',tagC:'#d35448',badge:3,bg:'linear-gradient(135deg,#e8ddd3,#d4c5b5)'},
+  {id:2,name:'蓝牙耳机 Pro Max',emoji:'🎧',price:299,orig:599,cat:'digital',rating:4.6,sales:5672,tag:'热卖',tagC:'#1a7a6d',badge:0,bg:'linear-gradient(135deg,#f5ead6,#e8d5b8)'},
+  {id:3,name:'北欧智能台灯',emoji:'💡',price:89,orig:159,cat:'home',rating:4.9,sales:1203,tag:'精选',tagC:'#c8952e',badge:0,bg:'linear-gradient(135deg,#dde8d8,#c5d6bc)'},
+  {id:4,name:'真皮通勤手提包',emoji:'👜',price:459,orig:899,cat:'women',rating:4.7,sales:892,tag:'折扣',tagC:'#d35448',badge:12,bg:'linear-gradient(135deg,#f0d9c8,#e5c4a8)'},
+  {id:5,name:'机械键盘 Cherry轴',emoji:'⌨️',price:549,orig:799,cat:'digital',rating:4.5,sales:3456,tag:'爆款',tagC:'#d35448',badge:0,bg:'linear-gradient(135deg,#d4e6d9,#b8d4be)'},
+  {id:6,name:'日式陶瓷餐具套装',emoji:'🍽️',price:128,orig:258,cat:'home',rating:4.8,sales:678,tag:'好评',tagC:'#1a7a6d',badge:5,bg:'linear-gradient(135deg,#f0d5c8,#e8c0ad)'},
+];
+
+// ── State ──
+let mode='operate', view='home', cat='all', pid=null, qty=1, bannerI=0, detailI=0, sort='default', cart=[{pid:2,qty:1},{pid:3,qty:2}], showModal=false, showDrawer=false;
+const banners=['🎉 夏日清凉节 · 满300减50','📦 新人专享 · 首单立减30','🔥 限时秒杀 · 每日10点开始'];
+
+function stars(r,sz){const f=Math.floor(r),h=r%1>=.5?1:0,e=5-f-h;return`<span class="stars" style="font-size:${sz||12}px">${'★'.repeat(f)}${h?'½':''}${'<span class="stars-dim">'+'★'.repeat(e)+'</span>'}</span>`}
+
+// ── Hotspot wrapper ──
+function hs(id,inner){const d=D[id];if(!d)return inner;return`<div class="hs" data-comp="${id}" onmouseenter="showTip(event,'${id}')" onmousemove="moveTip(event)" onmouseleave="hideTip()" onclick="event.stopPropagation();openPanel('${id}')"><span class="hs-label">${d.zh} ${d.en}</span>${inner}</div>`}
+
+// ── Render App ──
+function render(){
+  const el=document.getElementById('app');
+  if(view==='home') el.innerHTML=homeView();
+  else if(view==='detail') el.innerHTML=detailView();
+  else if(view==='cart') el.innerHTML=cartView();
+  else if(view==='category') el.innerHTML=categoryView();
+  else if(view==='profile') el.innerHTML=profileView();
+  else el.innerHTML=homeView();
+}
+
+// ── Home View ──
+function homeView(){
+  const filtered=cat==='all'?P:P.filter(p=>p.cat===cat);
+  const sorted=[...filtered].sort((a,b)=>{
+    if(sort==='price-asc')return a.price-b.price;if(sort==='price-desc')return b.price-a.price;
+    if(sort==='sales')return b.sales-a.sales;if(sort==='rating')return b.rating-a.rating;return 0;
+  });
+  const cartCount=cart.reduce((s,c)=>s+c.qty,0);
+  return`
+  <div class="ec-nav">
+    <div class="ec-nav-title" style="flex:1">好物商城</div>
+    <div class="ec-nav-icons">
+      ${hs('notification','<div class="ec-nav-icon">🔔<div class="dot"></div></div>')}
+      ${hs('badge','<div class="ec-nav-icon" onclick="goCart()" style="cursor:pointer">🛒'+(cartCount?'<div class="dot"></div>':'')+'</div>')}
+    </div>
+  </div>
+  ${hs('breadcrumb','<div class="ec-bc"><a onclick="goHome()">首页</a><span class="sep">›</span><span class="cur">'+(cat==='all'?'全部商品':{women:'女装',digital:'数码',home:'家居'}[cat])+'</span></div>')}
+  <div class="ec-body">
+    ${hs('search','<div class="ec-search">🔍 搜索商品、品牌、店铺...</div>')}
+    ${hs('banner','<div class="ec-banner warm"><div class="ec-arrow l" onclick="bannerPrev()">‹</div><h3>'+banners[bannerI]+'</h3><p>限时优惠 · 不容错过</p><div class="ec-dots">'+banners.map((_,i)=>'<div class="ec-dot'+(i===bannerI?' on':'')+'" onclick="bannerTo('+i+')"></div>').join('')+'</div><div class="ec-arrow r" onclick="bannerNext()">›</div></div>')}
+    ${hs('tab','<div class="ec-tabs">'+['all','women','digital','home'].map(c=>'<div class="ec-tab'+(cat===c?' on':'')+'" onclick="setCat(\''+c+'\')">'+{all:'推荐',women:'女装',digital:'数码',home:'家居'}[c]+'</div>').join('')+'</div>')}
+    <div class="ec-cats">
+      ${hs('tag','<div class="ec-cat'+(cat==='all'?' on':'')+'" onclick="setCat(\'all\')">全部</div>')}
+      ${hs('tag','<div class="ec-cat'+(cat==='women'?' on':'')+'" onclick="setCat(\'women\')">👗 女装</div>')}
+      ${hs('tag','<div class="ec-cat'+(cat==='digital'?' on':'')+'" onclick="setCat(\'digital\')">📱 数码</div>')}
+      ${hs('tag','<div class="ec-cat'+(cat==='home'?' on':'')+'" onclick="setCat(\'home\')">🏠 家居</div>')}
+      ${hs('drawer','<div class="ec-cat dashed" onclick="toggleDrawer()">⚙ 筛选</div>')}
+    </div>
+    <div class="ec-sort">
+      ${hs('sort-select','<select class="ec-sort-sel" onchange="setSort(this.value)"><option value="default"'+(sort==='default'?' selected':'')+'>综合排序</option><option value="sales"'+(sort==='sales'?' selected':'')+'>销量优先</option><option value="price-asc"'+(sort==='price-asc'?' selected':'')+'>价格 ↑</option><option value="price-desc"'+(sort==='price-desc'?' selected':'')+'>价格 ↓</option><option value="rating"'+(sort==='rating'?' selected':'')+'>好评优先</option></select>')}
+      <span class="ec-count">共 ${sorted.length} 件</span>
+    </div>
+    ${sorted.length===0?hs('empty-state','<div class="ec-empty"><div class="ec-empty-ico">📭</div><div class="ec-empty-txt">该分类暂无商品</div><button class="ec-empty-btn" onclick="setCat(\'all\')">看看其他</button></div>')
+    :'<div class="ec-grid">'+sorted.map(p=>hs('card','<div class="ec-product" onclick="goDetail('+p.id+')"><div class="ec-product-img" style="background:'+p.bg+'">'+p.emoji+(hs('tag','<span class="ec-tag" style="background:'+p.tagC+'">'+p.tag+'</span>'))+(p.badge?hs('badge','<span class="ec-badge">'+p.badge+'</span>'):'')+'</div><div class="ec-pinfo"><div class="ec-pname">'+p.name+'</div>'+(hs('rating','<div class="ec-prating">'+stars(p.rating)+'<span class="rating-num">'+p.rating+'</span></div>'))+'<div class="ec-pprice">¥'+p.price+'<small>¥'+p.orig+'</small></div><div class="ec-psales">已售 '+p.sales+'</div></div></div>')).join('')+'</div>'}
+  </div>
+  ${hs('bottom-nav','<div class="ec-bnav"><div class="ec-bnav-item on"><div class="ec-bnav-ico">🏠</div>首页</div><div class="ec-bnav-item" onclick="goCategory()"><div class="ec-bnav-ico">📂</div>分类</div><div class="ec-bnav-item" onclick="goCart()"><div class="ec-bnav-ico">🛒</div>购物车'+(cartCount?'<div class="ec-bnav-badge">'+cartCount+'</div>':'')+'</div><div class="ec-bnav-item" onclick="goProfile()"><div class="ec-bnav-ico">👤</div>我的</div></div>')}
+  ${showDrawer?filterDrawer():''}`;
+}
+
+// ── Detail View ──
+function detailView(){
+  const p=P.find(x=>x.id===pid);if(!p)return homeView();
+  const imgs=[p.bg,'linear-gradient(135deg,#e8ddd3,#c5b8a5)','linear-gradient(135deg,#f5ead6,#d4c5a0)'];
+  const shipFree=p.price>=99,pct=Math.min(p.price/300*100,100);
+  const cartCount=cart.reduce((s,c)=>s+c.qty,0);
+  const rvs=[
+    {n:'小红',a:'红',c:'linear-gradient(135deg,#d4836a,#c46b50)',s:5,t:'质量非常好，面料很舒服，和图片一模一样！物流也很快。',d:'2026-07-10'},
+    {n:'阿明',a:'明',c:'linear-gradient(135deg,#5a8a7e,#4a7a6e)',s:4,t:'整体不错，性价比高。包装精致，送人也体面。',d:'2026-07-08'},
+    {n:'小李',a:'李',c:'linear-gradient(135deg,#8a7a5a,#7a6a4a)',s:5,t:'第二次回购了，家人也喜欢，又买了两件。',d:'2026-07-05'}
+  ];
+  return`
+  <div class="ec-nav">
+    <button class="ec-back" onclick="goHome()">←</button>
+    <div class="ec-nav-title">${p.name}</div>
+    <div class="ec-nav-icons">
+      ${hs('notification','<div class="ec-nav-icon">🔔<div class="dot"></div></div>')}
+      ${hs('badge','<div class="ec-nav-icon" onclick="goCart()" style="cursor:pointer">🛒'+(cartCount?'<div class="dot"></div>':'')+'</div>')}
+    </div>
+  </div>
+  ${hs('breadcrumb','<div class="ec-bc"><a onclick="goHome()">首页</a><span class="sep">›</span><a onclick="goHome()">'+(cat==='all'?'全部':{women:'女装',digital:'数码',home:'家居'}[cat]||'商品')+'</a><span class="sep">›</span><span class="cur">'+p.name+'</span></div>')}
+  ${hs('carousel','<div class="ec-dimg" style="background:'+imgs[detailI]+'">'+p.emoji+'<div class="ec-arrow l" onclick="detailPrev()">‹</div><div class="ec-arrow r" onclick="detailNext()">›</div><div class="ec-dots">'+imgs.map((_,i)=>'<div class="ec-dot'+(i===detailI?' on':'')+'" onclick="detailTo('+i+')"></div>').join('')+'</div></div>')}
+  <div class="ec-dbody">
+    ${hs('rating','<div class="ec-drating">'+stars(p.rating,18)+'<span class="ec-drtxt">'+p.rating+' 分 · '+Math.floor(p.sales*.3)+' 条评价 · 已售 '+p.sales+'+</span></div>')}
+    <div class="ec-dprice">¥${p.price}<small>¥${p.orig}</small><span class="disc">-'+Math.round((1-p.price/p.orig)*100)+'%</span></div>
+    <div class="ec-dname">${p.name}</div>
+    ${hs('tag','<div class="ec-dtags"><span class="ec-dtag" style="background:'+p.tagC+'15;color:'+p.tagC+';border:1px solid '+p.tagC+'30">'+p.tag+'</span><span class="ec-dtag" style="background:var(--green-bg);color:var(--green);border:1px solid rgba(58,143,106,.2)">7天无理由</span><span class="ec-dtag" style="background:var(--gold-bg);color:var(--gold);border:1px solid rgba(200,149,46,.2)">正品保证</span></div>')}
+    ${hs('divider','<div class="ec-div"></div>')}
+    ${hs('progress','<div class="ec-ship"><div class="ec-ship-text">'+(shipFree?'🎉 已达包邮门槛':'还差 <strong>¥'+(300-p.price)+'</strong> 享包邮')+'</div><div class="ec-ship-bar"><div class="ec-ship-fill" style="width:'+pct+'%"></div></div></div>')}
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:14px;font-weight:600">购买数量</span>
+      ${hs('qty-stepper','<div class="ec-stepper"><div class="ec-stepbtn" onclick="qtyChange(-1)">−</div><div class="ec-stepval">'+qty+'</div><div class="ec-stepbtn" onclick="qtyChange(1)">+</div></div>')}
+    </div>
+    ${hs('divider','<div class="ec-div"></div>')}
+    <div class="ec-rvhead"><span class="ec-rv-title">用户评价</span><span class="ec-rvcount">${Math.floor(p.sales*.3)} 条 ›</span></div>
+    ${rvs.map(r=>'<div class="ec-review">'+hs('avatar','<div class="ec-rv-avatar" style="background:'+r.c+'">'+r.a+'</div>')+'<div class="ec-rv-body"><div class="ec-rv-name">'+r.n+'</div>'+hs('rating','<div class="ec-rv-stars">'+'★'.repeat(r.s)+'☆'.repeat(5-r.s)+'</div>')+'<div class="ec-rv-text">'+r.t+'</div><div class="ec-rv-time">'+r.d+'</div></div></div>').join('')}
+  </div>
+  ${hs('button','<div class="ec-actions"><div class="ec-abtn secondary" onclick="goCart()">🛒 购物车('+cartCount+')</div><div class="ec-abtn primary" onclick="addToCart('+p.id+')">加入购物车</div></div>')}
+  ${showModal?addModal(p):''}`;
+}
+
+// ── Cart View ──
+function cartView(){
+  const items=cart.map(c=>({...P.find(p=>p.id===c.pid),qty:c.qty}));
+  const sub=items.reduce((s,i)=>s+i.price*i.qty,0),ship=sub>=300?0:15,total=sub+ship;
+  return`
+  <div class="ec-nav">
+    <button class="ec-back" onclick="goHome()">←</button>
+    <div class="ec-nav-title">购物车</div>
+    <div class="ec-nav-icons"></div>
+  </div>
+  ${hs('breadcrumb','<div class="ec-bc"><a onclick="goHome()">首页</a><span class="sep">›</span><span class="cur">购物车</span></div>')}
+  <div class="ec-body">
+    ${items.length===0?hs('empty-state','<div class="ec-empty"><div class="ec-empty-ico">🛒</div><div class="ec-empty-txt">购物车是空的</div><button class="ec-empty-btn" onclick="goHome()">去逛逛</button></div>')
+    :items.map((it,i)=>hs('card','<div class="ec-cartitem"><div class="ec-cartimg" style="background:'+it.bg+'">'+it.emoji+'</div><div class="ec-cartinfo"><div><div class="ec-cartname">'+it.name+'</div><div class="ec-cartspec">'+{women:'女装',digital:'数码',home:'家居'}[it.cat]+' · 默认规格</div></div><div class="ec-cartbot"><div class="ec-cartprice">¥'+it.price*it.qty+'</div><div style="display:flex;align-items:center;gap:10px">'+hs('qty-stepper','<div class="ec-stepper"><div class="ec-stepbtn" onclick="cartQty('+i+',-1)">−</div><div class="ec-stepval">'+it.qty+'</div><div class="ec-stepbtn" onclick="cartQty('+i+',1)">+</div></div>')+hs('button','<span class="ec-cartdel" onclick="cartDel('+i+')">删除</span>')+'</div></div></div></div>')).join('')}
+    ${items.length>0?hs('divider','<div class="ec-div"></div>')+hs('progress','<div class="ec-ship"><div class="ec-ship-text">'+(ship===0?'🎉 已享包邮':'还差 <strong>¥'+(300-sub)+'</strong> 享包邮')+'</div><div class="ec-ship-bar"><div class="ec-ship-fill" style="width:'+Math.min(sub/300*100,100)+'%"></div></div></div>')+hs('card','<div class="ec-summary"><div class="ec-sumrow"><span>商品小计</span><span>¥'+sub+'</span></div><div class="ec-sumrow"><span>运费</span><span class="'+(ship===0?'free':'')+'">'+(ship===0?'免运费':'¥'+ship)+'</span></div><div class="ec-sumrow total"><span>合计</span><span class="val">¥'+total+'</span></div></div>')+hs('button','<div class="ec-actions-inline"><div class="ec-abtn secondary" onclick="goHome()">继续购物</div><div class="ec-abtn primary" onclick="checkout()">去结算 ('+items.reduce((s,c)=>s+c.qty,0)+')</div></div>'):''}
+  </div>
+  ${hs('bottom-nav','<div class="ec-bnav"><div class="ec-bnav-item" onclick="goHome()"><div class="ec-bnav-ico">🏠</div>首页</div><div class="ec-bnav-item" onclick="goCategory()"><div class="ec-bnav-ico">📂</div>分类</div><div class="ec-bnav-item on"><div class="ec-bnav-ico">🛒</div>购物车'+(cart.reduce((s,c)=>s+c.qty,0)?'<div class="ec-bnav-badge">'+cart.reduce((s,c)=>s+c.qty,0)+'</div>':'')+'</div><div class="ec-bnav-item" onclick="goProfile()"><div class="ec-bnav-ico">👤</div>我的</div></div>')}`;
+}
+
+// ── Modal ──
+function addModal(p){return'<div class="ec-modal-bg" onclick="closeModal(event)">'+hs('modal','<div class="ec-modal" onclick="event.stopPropagation()"><div class="ec-modal-ico">✅</div><div class="ec-modal-title">已加入购物车</div><div class="ec-modal-desc">'+p.name+' × '+qty+'</div><div class="ec-modal-btns"><div class="ec-modal-btn ghost" onclick="closeModalForce()">继续购物</div><div class="ec-modal-btn primary" onclick="goCart()">查看购物车</div></div></div>')+'</div>'}
+
+// ── Category View ──
+function categoryView(){
+  const cats=[{id:'women',name:'女装',emoji:'👗',count:P.filter(p=>p.cat==='women').length,bg:'linear-gradient(135deg,#f0d9c8,#e5c4a8)'},{id:'digital',name:'数码',emoji:'📱',count:P.filter(p=>p.cat==='digital').length,bg:'linear-gradient(135deg,#d4e6d9,#b8d4be)'},{id:'home',name:'家居',emoji:'🏠',count:P.filter(p=>p.cat==='home').length,bg:'linear-gradient(135deg,#dde8d8,#c5d6bc)'}];
+  return`<div class="ec-nav"><button class="ec-back" onclick="goHome()">←</button><div class="ec-nav-title">全部分类</div><div class="ec-nav-icons"></div></div>
+  ${hs('breadcrumb','<div class="ec-bc"><a onclick="goHome()">首页</a><span class="sep">›</span><span class="cur">全部分类</span></div>')}
+  <div class="ec-body">
+    ${hs('search','<div class="ec-search">🔍 搜索分类...</div>')}
+    ${cats.map(c=>hs('card','<div style="display:flex;gap:14px;padding:16px;background:var(--s-card);border-radius:14px;border:1px solid var(--s-border);cursor:pointer;transition:all .2s" onclick="setCat(\''+c.id+'\');goHome()"><div style="width:64px;height:64px;border-radius:14px;background:'+c.bg+';display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">'+c.emoji+'</div><div style="flex:1;display:flex;flex-direction:column;justify-content:center"><div style="font-size:15px;font-weight:700">'+c.name+'</div><div style="font-size:12px;color:var(--text3);margin-top:2px">'+c.count+' 件商品</div></div><div style="color:var(--text3);font-size:16px;align-self:center">›</div></div>')).join('')}
+    ${hs('divider','<div class="ec-div" style="margin:8px 0"></div>')}
+    <div style="font-size:14px;font-weight:700;margin-bottom:4px">热门标签</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      ${hs('tag','<div class="ec-cat">连衣裙</div>')}
+      ${hs('tag','<div class="ec-cat">蓝牙耳机</div>')}
+      ${hs('tag','<div class="ec-cat">台灯</div>')}
+      ${hs('tag','<div class="ec-cat">手提包</div>')}
+      ${hs('tag','<div class="ec-cat">键盘</div>')}
+      ${hs('tag','<div class="ec-cat">餐具</div>')}
+    </div>
+  </div>
+  ${hs('bottom-nav','<div class="ec-bnav"><div class="ec-bnav-item" onclick="goHome()"><div class="ec-bnav-ico">🏠</div>首页</div><div class="ec-bnav-item on"><div class="ec-bnav-ico">📂</div>分类</div><div class="ec-bnav-item" onclick="goCart()"><div class="ec-bnav-ico">🛒</div>购物车'+(cart.reduce((s,c)=>s+c.qty,0)?'<div class="ec-bnav-badge">'+cart.reduce((s,c)=>s+c.qty,0)+'</div>':'')+'</div><div class="ec-bnav-item" onclick="goProfile()"><div class="ec-bnav-ico">👤</div>我的</div></div>')}`;
+}
+
+// ── Profile View ──
+function profileView(){
+  return`<div class="ec-nav"><button class="ec-back" onclick="goHome()">←</button><div class="ec-nav-title">我的</div><div class="ec-nav-icons"></div></div>
+  ${hs('breadcrumb','<div class="ec-bc"><a onclick="goHome()">首页</a><span class="sep">›</span><span class="cur">我的</span></div>')}
+  <div class="ec-body">
+    ${hs('avatar','<div style="display:flex;align-items:center;gap:14px;padding:20px;background:var(--s-card);border-radius:16px;border:1px solid var(--s-border)"><div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#1a7a6d,#3a8f6a);display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;font-weight:700">张</div><div><div style="font-size:17px;font-weight:700">张三</div><div style="font-size:12px;color:var(--text3);margin-top:2px">普通会员 · 已购物 12 次</div></div></div>')}
+    ${hs('tab','<div class="ec-tabs"><div class="ec-tab on">全部订单</div><div class="ec-tab">待付款</div><div class="ec-tab">待发货</div><div class="ec-tab">已完成</div></div>')}
+    ${hs('card','<div style="padding:16px;background:var(--s-card);border-radius:14px;border:1px solid var(--s-border)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:12px;color:var(--text3)">订单 #2026071501</span>'+hs('badge','<span style="padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;background:var(--green-bg);color:var(--green)">已发货</span>')+'</div><div style="font-size:14px;font-weight:600">蓝牙耳机 Pro Max × 1</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><span style="font-size:16px;font-weight:800;color:var(--red)">¥299</span>'+hs('button','<span style="padding:6px 16px;border-radius:8px;border:1px solid var(--border);background:var(--s-card);font-size:12px;cursor:pointer">查看物流</span>')+'</div></div>')}
+    ${hs('card','<div style="padding:16px;background:var(--s-card);border-radius:14px;border:1px solid var(--s-border)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:12px;color:var(--text3)">订单 #2026071003</span>'+hs('badge','<span style="padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;background:var(--gold-bg);color:var(--gold)">已完成</span>')+'</div><div style="font-size:14px;font-weight:600">日式陶瓷餐具套装 × 2</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><span style="font-size:16px;font-weight:800;color:var(--red)">¥256</span>'+hs('button','<span style="padding:6px 16px;border-radius:8px;border:1px solid var(--border);background:var(--s-card);font-size:12px;cursor:pointer">再次购买</span>')+'</div></div>')}
+    ${hs('divider','<div class="ec-div" style="margin:8px 0"></div>')}
+    ${hs('accordion','<div style="border:1px solid var(--s-border);border-radius:12px;overflow:hidden"><div style="padding:14px 16px;border-bottom:1px solid var(--s-border);display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:600">📍 收货地址</span><span style="font-size:10px;color:var(--text3)">▾</span></div><div style="padding:14px 16px;border-bottom:1px solid var(--s-border);display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:600">🎫 优惠券</span><span style="font-size:12px;color:var(--red)">3 张可用</span></div><div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:600">⚙️ 设置</span><span style="font-size:10px;color:var(--text3)">▾</span></div></div>')}
+  </div>
+  ${hs('bottom-nav','<div class="ec-bnav"><div class="ec-bnav-item" onclick="goHome()"><div class="ec-bnav-ico">🏠</div>首页</div><div class="ec-bnav-item" onclick="goCategory()"><div class="ec-bnav-ico">📂</div>分类</div><div class="ec-bnav-item" onclick="goCart()"><div class="ec-bnav-ico">🛒</div>购物车'+(cart.reduce((s,c)=>s+c.qty,0)?'<div class="ec-bnav-badge">'+cart.reduce((s,c)=>s+c.qty,0)+'</div>':'')+'</div><div class="ec-bnav-item on"><div class="ec-bnav-ico">👤</div>我的</div></div>')}`;
+}
+
+// ── Filter Drawer ──
+function filterDrawer(){return'<div class="ec-drawer-bg" onclick="toggleDrawer()">'+hs('drawer','<div class="ec-drawer" onclick="event.stopPropagation()"><h4>筛选条件 <span onclick="toggleDrawer()">✕ 关闭</span></h4><div class="ec-dsec"><div class="ec-dlabel">商品分类</div><div style="display:flex;gap:6px;flex-wrap:wrap">'+hs('tag','<div class="ec-cat'+(cat==='all'?' on':'')+'" onclick="setCat(\'all\')" style="font-size:11px;padding:6px 12px">全部</div>')+hs('tag','<div class="ec-cat'+(cat==='women'?' on':'')+'" onclick="setCat(\'women\')" style="font-size:11px;padding:6px 12px">女装</div>')+hs('tag','<div class="ec-cat'+(cat==='digital'?' on':'')+'" onclick="setCat(\'digital\')" style="font-size:11px;padding:6px 12px">数码</div>')+hs('tag','<div class="ec-cat'+(cat==='home'?' on':'')+'" onclick="setCat(\'home\')" style="font-size:11px;padding:6px 12px">家居</div>')+'</div></div>'+hs('slider','<div class="ec-dsec"><div class="ec-dlabel">价格区间</div><div class="ec-dslider"><div class="ec-dslider-fill"></div><div class="ec-dslider-handle" style="left:10%"></div><div class="ec-dslider-handle" style="right:25%"></div></div><div class="ec-dprice-row"><span>¥50</span><span>¥500</span></div></div>')+hs('checkbox','<div class="ec-dsec"><div class="ec-dlabel">其他</div><div class="ec-dcheck"><div class="ec-dcheck-box on">✓</div>仅看有货</div><div class="ec-dcheck"><div class="ec-dcheck-box"></div>包邮商品</div></div>')+'<div class="ec-dbtns"><div class="ec-dbtn ghost" onclick="toggleDrawer()">重置</div><div class="ec-dbtn primary" onclick="toggleDrawer()">确定</div></div></div>')+'</div>'}
+
+// ── Actions ──
+function goHome(){view='home';showModal=false;showDrawer=false;detailI=0;qty=1;render();window.scrollTo(0,0)}
+function goCategory(){view='category';showModal=false;render();window.scrollTo(0,0)}
+function goProfile(){view='profile';showModal=false;render();window.scrollTo(0,0)}
+function goDetail(id){view='detail';pid=id;qty=1;detailI=0;showModal=false;render();window.scrollTo(0,0)}
+function goCart(){view='cart';showModal=false;render();window.scrollTo(0,0)}
+function setCat(c){cat=c;render()}
+function setSort(s){sort=s;render()}
+function bannerTo(i){bannerI=i;render()}
+function bannerNext(){bannerI=(bannerI+1)%3;render()}
+function bannerPrev(){bannerI=(bannerI+2)%3;render()}
+function detailTo(i){detailI=i;render()}
+function detailNext(){detailI=(detailI+1)%3;render()}
+function detailPrev(){detailI=(detailI+2)%3;render()}
+function qtyChange(d){qty=Math.max(1,Math.min(99,qty+d));render()}
+function toggleDrawer(){showDrawer=!showDrawer;render()}
+function addToCart(id){const ex=cart.find(c=>c.pid===id);if(ex)ex.qty+=qty;else cart.push({pid:id,qty:qty});showModal=true;render()}
+function cartQty(i,d){cart[i].qty+=d;if(cart[i].qty<=0)cart.splice(i,1);render()}
+function cartDel(i){cart.splice(i,1);render()}
+function checkout(){cart=[];render()}
+function closeModal(e){if(e.target.classList.contains('ec-modal-bg')){showModal=false;render()}}
+function closeModalForce(){showModal=false;render()}
+
+// ── Mode Toggle ──
+function setMode(m){
+  mode=m;
+  document.body.className=m;
+  document.querySelectorAll('.mode-opt').forEach(el=>{el.classList.toggle('on',el.classList.contains(m))});
+  if(m==='operate')hideTip();
+}
+
+// ── Tooltip ──
+const tooltip=document.getElementById('tooltip');let tipT;
+function showTip(e,id){if(mode!=='inspect')return;const d=D[id];if(!d)return;document.getElementById('ttZh').textContent=d.zh;document.getElementById('ttEn').textContent=d.en;document.getElementById('ttDesc').textContent=d.desc;clearTimeout(tipT);tipT=setTimeout(()=>tooltip.classList.add('show'),150);moveTip(e)}
+function moveTip(e){if(mode!=='inspect')return;let x=e.clientX+16,y=e.clientY+16;if(x+320>window.innerWidth)x=e.clientX-336;if(y+200>window.innerHeight)y=e.clientY-216;tooltip.style.left=Math.max(8,x)+'px';tooltip.style.top=Math.max(8,y)+'px'}
+function hideTip(){clearTimeout(tipT);tooltip.classList.remove('show')}
+
+// ── Detail Panel ──
+function openPanel(id){if(mode!=='inspect')return;const d=D[id];if(!d)return;hideTip();
+  document.getElementById('panel').innerHTML='<div class="panel-head"><div><div class="ph-zh">'+d.zh+'</div><div class="ph-en">'+d.en+'</div><div class="ph-cat">'+d.cat+'</div></div><button class="panel-close" onclick="closePanel()">✕</button></div><div class="panel-section"><h3>📖 组件说明</h3><p>'+d.desc+'</p></div><div class="panel-section"><h3>⚡ 使用建议</h3><div class="usage-grid"><div class="usage-do"><strong>✅ 什么时候用</strong>'+d.doU+'</div><div class="usage-dont"><strong>❌ 什么时候不用</strong>'+d.dontU+'</div></div></div><div class="panel-section"><h3>🔬 组件解剖</h3><div class="anatomy-list">'+d.anatomy.map(a=>'<span class="anatomy-item">'+a+'</span>').join('')+'</div></div><div class="copy-row"><button class="copy-btn" onclick="cp(event,\''+id+'\',\'zh\')">📋 复制中文描述</button><button class="copy-btn" onclick="cp(event,\''+id+'\',\'en\')">📋 Copy English</button></div>';
+  document.getElementById('overlay').classList.add('show');document.body.style.overflow='hidden'}
+function closePanel(){document.getElementById('overlay').classList.remove('show');document.body.style.overflow=''}
+function cp(e,id,lang){e.stopPropagation();const d=D[id];if(!d)return;
+  const t=lang==='zh'?d.zh+'（'+d.en+'）\n'+d.desc+'\n\n✅ '+d.doU+'\n❌ '+d.dontU+'\n\n构成：'+d.anatomy.join('、'):d.en+'\n'+d.desc+'\n\nUse: '+d.doU+'\nAvoid: '+d.dontU+'\n\nAnatomy: '+d.anatomy.join(', ');
+  navigator.clipboard.writeText(t).then(()=>{const b=e.currentTarget;b.classList.add('copied');b.textContent='✅ 已复制';setTimeout(()=>{b.classList.remove('copied');b.innerHTML=lang==='zh'?'📋 复制中文描述':'📋 Copy English'},1500)})}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closePanel()});
+render();
+</script>
+</body>
+</html>
